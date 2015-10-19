@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE8">
+	<meta name="viewport" content="width=device-width, maximum-scale=1.0, initial-scale=1, user-scalable=1">
+
+    <!--[if IE]>
+      <link href="/stylesheets/ie.css" media="screen, projection" rel="stylesheet" type="text/css" />
+    <![endif]-->
+	<!-- Bootstrap core CSS -->
+</head>
+<body>
+<div>
+	<div class=""></div>
+</div>
+</body>
+<script src="js/pure-javascript-jquery-implementation.js"></script>
+<script>
+	// add more function to myLibrary
+	(function(myLibrary) {
+    myLibrary.arrayLike = function() {
+      var obj = { length : arguments.length };
+      myLibrary.each(arguments, function(ele, i) {
+          obj[i] = ele;
+      });
+      return obj;
+    };
+	})(this.myLibrary);
+
+	// test arrayLike
+	var obj = myLibrary.arrayLike(1, 2, 3, 4);
+	myLibrary.each(obj, function(element) {
+	    console.log(element);
+	});
+
+  console.log(obj);
+</script>
+</html>
