@@ -12,28 +12,37 @@
 </head>
 <body>
 <div>
-	<div class=""></div>
+	<div id="test" class="test"></div>
 </div>
 </body>
 <script src="js/pure-javascript-jquery-implementation.js"></script>
 <script>
 	// add more function to myLibrary
 	(function(myLibrary) {
-    myLibrary.arrayLike = function() {
-      var obj = { length : arguments.length };
-      myLibrary.each(arguments, function(ele, i) {
-          obj[i] = ele;
-      });
-      return obj;
+    // myLibrary.arrayLike = function() {
+    //   var obj = { length : arguments.length };
+    //   myLibrary.each(arguments, function(ele, i) {
+    //       obj[i] = ele;
+    //   });
+    //   return obj;
+    // };
+
+    // 擴充 method
+		myLibrary.method.get = function(index) {
+      return this[index];
     };
+
 	})(this.myLibrary);
 
 	// test arrayLike
-	var obj = myLibrary.arrayLike(1, 2, 3, 4);
-	myLibrary.each(obj, function(element) {
-	    console.log(element);
-	});
+	// var obj = myLibrary.arrayLike(1, 2, 3, 4);
+	// myLibrary.each(obj, function(element) {
+	//     console.log(element);
+	// });
 
-  console.log(obj);
+ //  console.log(obj);
+
+  myLibrary('#test').html('test');
+  console.log(myLibrary('#test').attr('class'));
 </script>
 </html>
