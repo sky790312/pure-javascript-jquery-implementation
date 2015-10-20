@@ -43,6 +43,58 @@
 		}
   };
 
+  // deal with Event
+  myLibrary.Event = function(original) {
+      if(!this.stopPropagation) {
+        return new myLibrary.Event(original);
+      }
+      // stantard
+      this.original = original;
+      this.type = original.type;
+      this.target = original.target || original.srcElement;
+  };
+
+  myLibrary.Event.prototype = {
+    stopPropagation: function() {
+      // stantard
+      if(this.original.stopPropagation) {
+        this.original.stopPropagation();
+      }else {
+        this.original.cancelBubble = true;
+      }
+    }
+  };
+
+  // stantard
+  if(document.addEventListener) {
+    utils.bind = function(element, eventType, handler) {
+      element.addEventListener(eventType, function(event) {
+      	console.log(handler)
+        var result = handler.call(event.currentTarget, myLibrary.Event(event));
+        if(result === false) {
+          event.preventDefault();
+        }
+        return result;
+      }, false);
+    };
+    utils.unbind = function(element, eventType, handler) {
+      element.removeEventListener(eventType, handler, false);
+    };
+  }else if(document.attachEvent) {
+    utils.bind = function(element, eventType, handler) {
+      element.attachEvent('on' + eventType, function() {
+        var result = handler.call(element, myLibrary.Event(window.event));
+        if(result === false) {
+          window.event.returnValue = false;
+        }
+        return result;
+      });
+    };
+    utils.unbind = function(element, eventType, handler) {
+      element.detachEvent(eventType, handler);
+    };
+  }
+
   // extend common method to myLibrary
   function extend(target, source) {
     utils.each(source, function(value, key) {
@@ -139,7 +191,7 @@
 		  }
 		},
 		val: function(value) {
-			// 先只處理 <input> 元素
+			// 目前只處理 <input> 元素
 			if(value === undefined) {
 				return this[0] && this[0].nodeName === 'INPUT' ? this[0].value : null;
 			}
@@ -155,14 +207,14 @@
 		  if(typeof childs === 'string' || childs.nodeType) {
 		    childs = myLibrary(childs);
 		  }
-
-		  if(this.length === 1) { // 只有一個父節點
+			// 只有一個父節點
+		  if(this.length === 1) {
 		    var parent = this[0];
 		    myLibrary.each(childs, function(child) {
 		      parent.appendChild(child);
 		    });
-			}
-			else if(this.length > 1){ // 有多個父節點
+			// 有多個父節點
+			}else if(this.length > 1){
 			  myLibrary.each(this, function(parent) {
 		      childs.each(function(child) {
 						// 複製子節點
@@ -174,15 +226,34 @@
 			  });
 			}
 			return this;
-     },
-    remove: function() {
-      return myLibrary.each(this, function(element) {
-        element.parentNode.removeChild(element);
-      });
-    }
+    },
+		appendTo: function(parents) {
+			if(typeof parents === 'string' || parents.nodeType) {
+				parents = myLibrary(parents);
+			}
+			return parents.append(this);
+		},
+		remove: function() {
+			return myLibrary.each(this, function(element) {
+				element.parentNode.removeChild(element);
+			});
+		},
+		bind: function(eventType, handler) {
+			return myLibrary.each(this, function(element) {
+				myLibrary.bind(element, eventType, handler);
+			});
+		},
+		unbind: function(eventType, handler) {
+			return myLibrary.each(this, function(element) {
+				myLibrary.unbind(element, eventType, handler);
+			});
+		},
+		click: function(handler) {
+			return this.bind('click', handler);
+		}
 	};
 
-	// myLibrary.method, myLibrary.prototype 參考同一物件, 之後 myLibrary.method.init.prototype 再參考 XD.method
+	// myLibrary.method, myLibrary.prototype 參考同一物件, 之後 myLibrary.method.init.prototype 再參考 myLibrary.method
   myLibrary.method.init.prototype = myLibrary.method;
 
   global.myLibrary = myLibrary;

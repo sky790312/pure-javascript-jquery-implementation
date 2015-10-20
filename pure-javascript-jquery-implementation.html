@@ -43,6 +43,12 @@
  //  console.log(obj);
 
   myLibrary('#test').html('test');
-  console.log(myLibrary('#test').attr('class'));
+  // console.log(myLibrary('#test').attr('class'));
+
+  myLibrary.bind(window, 'load', function(){
+  	myLibrary('#test').click(function(){
+  		console.log('click');
+  	});
+  });
 </script>
 </html>
