@@ -2,13 +2,22 @@
  * pure javascript implementation - jquery - support all browser => created by kevin hu
  * ========================================================= */
 
+/*
+	nodeType:
+
+	If the node is an element node, the nodeType property will return 1.
+	If the node is an attribute node, the nodeType property will return 2.
+	If the node is a text node, the nodeType property will return 3.
+	If the node is a comment node, the nodeType property will return 8.
+ */
+
 (function(global) {
   var myLibrary = function(selector, container) {
   	// implement every time
     return new myLibrary.method.init(selector, container);
   };
 
-  // common method
+  // utils
   var utils = {
     trim: function(text) {
 	    return (text || '').replace( /^(\s|\u00A0)+|(\s|\u00A0)+$/g, '');
@@ -28,7 +37,7 @@
 						break;
 					}
 				}
-			}else {
+			} else {
 				for(var i = 0, value = obj[0];
 					i < length && callback.call(obj[i], value, i) !== false; value = obj[++i] ) {}
 			}
@@ -40,7 +49,65 @@
               	.filter(function(ele) { return ele !== undefined; });
 			}
       return [];
-		}
+		},
+		screen: function() {
+      return {
+        width: screen.width,
+        height: screen.height,
+        availWidth: screen.availWidth,
+        availHeight: screen.availHeight
+      };
+	  },
+	  window: function() {
+      var xywh = {};
+      if(window.screenX) {
+				xywh.x = window.screenX;
+				xywh.y = window.screenY;
+      } else if(window.screenLeft) {
+        xywh.x = window.screenLeft;
+        xywh.y = window.screenTop;
+      }
+
+      if(window.outerWidth) {
+        xywh.width = window.outerWidth;
+        xywh.height = window.outerHeight;
+      } else if(document.documentElement.offsetWidth) {
+        xywh.width = document.documentElement.offsetWidth;
+        xywh.height = document.documentElement.offsetHeight;
+      } else if(document.body.offsetWidth) {
+        xywh.width = document.body.offsetWidth;
+        xywh.height = document.body.offsetHeight;
+      }
+      return xywh;
+	  },
+	  viewport: function() {
+      var wh = {};
+      if(window.innerWidth) {
+        wh.width = window.innerWidth;
+        wh.height = window.innerHeight;
+      } else if(document.documentElement.clientWidth) {
+        wh.width = document.documentElement.clientWidth;
+        wh.height = document.documentElement.clientHeight;
+      } else if(document.body.clientWidth) {
+        wh.width = document.body.clientWidth;
+        wh.height = document.body.clientHeight;
+      }
+      return wh;
+	  },
+	  scroll: function() {
+      var xy = {};
+      if(window.pageXOffset) {
+        xy.x = window.pageXOffset;
+        xy.y = window.pageYOffset;
+      } else if(document.documentElement.srollLeft) {
+        xy.x = document.documentElement.srollLeft;
+        xy.y = document.documentElement.srollTop;
+      } else if(document.body.srollLeft) {
+        xy.x = document.body.srollLeft;
+        xy.y = document.body.srollTop;
+      }
+      return xy;
+	  }
   };
 
   // deal with Event
@@ -59,7 +126,7 @@
       // stantard
       if(this.original.stopPropagation) {
         this.original.stopPropagation();
-      }else {
+      } else {
         this.original.cancelBubble = true;
       }
     }
@@ -69,7 +136,6 @@
   if(document.addEventListener) {
     utils.bind = function(element, eventType, handler) {
       element.addEventListener(eventType, function(event) {
-      	console.log(handler)
         var result = handler.call(event.currentTarget, myLibrary.Event(event));
         if(result === false) {
           event.preventDefault();
@@ -80,7 +146,7 @@
     utils.unbind = function(element, eventType, handler) {
       element.removeEventListener(eventType, handler, false);
     };
-  }else if(document.attachEvent) {
+  } else if(document.attachEvent) {
     utils.bind = function(element, eventType, handler) {
       element.attachEvent('on' + eventType, function() {
         var result = handler.call(element, myLibrary.Event(window.event));
@@ -181,8 +247,7 @@
 		  name = myLibrary.props[name] || name;
 		  if(value === undefined) {
 		    return this[0] && this[0].nodeType !== 3 && this[0].nodeType !== 8 ? this[0][name] : undefined;
-		  }
-		  else {
+		  } else {
 		    return myLibrary.each(this, function(element) {
 		      if(element.nodeType !== 3 && element.nodeType !== 8) {
 		        element[name] = value;
@@ -194,8 +259,7 @@
 			// 目前只處理 <input> 元素
 			if(value === undefined) {
 				return this[0] && this[0].nodeName === 'INPUT' ? this[0].value : null;
-			}
-			else {
+			} else {
 			  return myLibrary.each(this, function(element) {
 			    if(element.nodeName === 'INPUT') {
 			      element.value = value;
@@ -214,7 +278,7 @@
 		      parent.appendChild(child);
 		    });
 			// 有多個父節點
-			}else if(this.length > 1){
+			} else if(this.length > 1){
 			  myLibrary.each(this, function(parent) {
 		      childs.each(function(child) {
 						// 複製子節點
@@ -250,6 +314,189 @@
 		},
 		click: function(handler) {
 			return this.bind('click', handler);
+		},
+		blur: function(handler) {
+		  return this.bind('blur', handler);
+		},
+		css: function(name, value) {
+			name = myLibrary.props[name] || name;
+			if(value === undefined) {
+				if(typeof name === 'string') {
+				  if(this[0] && this[0].nodeType !== 3 && this[0].nodeType !== 8) {
+						if(window.getComputedStyle) {
+						  return window.getComputedStyle(this[0], null)[name];
+						} else if(this[0].currentStyle) {
+						  return this[0].currentStyle[name];
+						} else {
+						  return undefined;
+						}
+				   }
+				} else {
+				  myLibrary.each(this, function(element) {
+			      if(element.nodeType !== 3 && element.nodeType !== 8) {
+		          myLibrary.each(name, function(optValue, optName) {
+	              optName = myLibrary.props[optName] || optName;
+	              element.style[optName] = optValue;
+		          });
+			      }
+				  });
+				  return this;
+				}
+			} else {
+				return myLibrary.each(this, function(element) {
+				  if(element.nodeType !== 3 && element.nodeType !== 8) {
+				    element.style[name] = value;
+				  }
+				});
+			}
+		},
+		width: function(value) {
+		  return this.css('width', value);
+		},
+		height: function(value) {
+		  return this.css('height', value);
+		},
+		offset: function() {
+			if(this[0]) {
+				var left = 0,
+						top = 0;
+
+				for(var e = this[0]; e; e = e.offsetParent) {
+					left += e.offsetLeft;
+					top += e.offsetTop;
+				}
+
+				for(var e = this[0].parentNode; e && e != document.body; e = e.parentNode) {
+					if(e.scrollLeft) {
+					  left -= e.scrollLeft;
+					}
+					if(e.scrollTop) {
+					  top -= e.scrollTop;
+					}
+				}
+
+				return {
+					left: left,
+					top: top,
+					offsetWidth : this[0].offsetWidth,
+					offsetHeight : this[0].offsetHeight
+				};
+			}
+		},
+		hide: function() {
+			return myLibrary.each(this, function(element) {
+				var elementmyLibrary = myLibrary(element);
+				element.previousDisplay = elementmyLibrary.css('display');
+				element.style.display = 'none';
+			});
+		},
+		show: function() {
+			return myLibrary.each(this, function(element) {
+				var elementmyLibrary = myLibrary(element);
+				element.style.display = element.previousDisplay || '';
+				if(elementmyLibrary.css('display') === 'none') {
+					var node = document.createElement(element.nodeName);
+					document.body.appendChild(node);
+					element.style.display = myLibrary(node).css('display');
+					document.body.removeChild(node);
+				}
+			});
+		},
+		opacity: function(value) {
+	    if(value === undefined) {
+				var opt = this.css('opacity') || this.css('filter');
+				if(opt === '') {
+				  return 1;
+				}
+				if(opt.indexOf('alpha') !== -1)  {
+				  return opt.substring(14, opt.length - 1) / 100;
+				}
+				return parseFloat(opt);
+	    } else {
+        return myLibrary.each(this, function(element) {
+          if(myLibrary(element).css('opacity') !== undefined) {
+              element.style.opacity = value;
+          } else {
+              element.style.filter = 'alpha(opacity=' + parseInt(value * 100) + ')';
+          }
+        });
+	    }
+		},
+		fadeIn: function(speed) {
+	    speed = speed || 5000;
+	    return myLibrary.each(this, function(element) {
+        var target = element.previousOpacity || 1;
+        delete element.previousOpacity;
+        var step = target / speed * 500,
+        		opt = 0;
+        setTimeout(function next() {
+          opt += step;
+          if(opt < target) {
+            myLibrary(element).opacity(opt);
+            setTimeout(next);
+          } else {
+            myLibrary(element).opacity(target);
+          }
+        }, 500);
+	    });
+		},
+		fadeOut: function(speed) {
+			speed = speed || 5000;
+			return myLibrary.each(this, function(element) {
+				var elementmyLibrary = myLibrary(element);
+				element.previousOpacity = elementmyLibrary.opacity();
+				var step = element.previousOpacity / speed * 500,
+						opt = element.previousOpacity;
+				setTimeout(function next() {
+					opt -= step;
+					if(opt > 0) {
+					  elementmyLibrary.opacity(opt);
+					  setTimeout(next);
+					} else {
+					  elementmyLibrary.opacity(0);
+					}
+				}, 500);
+			});
+		},
+		hasClass: function(thisClass) {
+			if(this[0]) {
+				var allClass = this[0].className;
+				if(!allClass) {
+				  return false;
+				}
+				if(allClass === thisClass) {
+				  return true;
+				}
+				return allClass.search('\\b' + thisClass + '\\b') !== -1;
+			}
+			return false;
+		},
+		addClass: function(thisClass) {
+			return myLibrary.each(this, function(element) {
+				if(!myLibrary(element).hasClass(thisClass)) {
+					if(element.className) {
+					   thisClass = ' ' + thisClass;
+					}
+					element.className += thisClass;
+				}
+			});
+		},
+		removeClass: function(thisClass) {
+			return myLibrary.each(this, function(element) {
+			  element.className = element.className.replace(new RegExp('\\b' + thisClass + '\\b\\s*', 'g'), '');
+			});
+		},
+		toggleClass: function(thisClass1, thisClass2) {
+			return myLibrary.each(this, function(element) {
+				var elementmyLibrary = myLibrary(element);
+				if(elementmyLibrary.hasClass(thisClass1)) {
+				  elementmyLibrary.removeClass(thisClass1);
+				  elementmyLibrary.addClass(thisClass2);
+				} else if(elementmyLibrary.hasClass(thisClass2)) {
+				  elementmyLibrary.removeClass(thisClass2);
+				  elementmyLibrary.addClass(thisClass1);
+				}
+			});
 		}
 	};
 
