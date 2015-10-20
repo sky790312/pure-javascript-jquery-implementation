@@ -107,6 +107,128 @@
         xy.y = document.body.srollTop;
       }
       return xy;
+	  },
+	  param: function(data) {
+      var pairs = [];
+      for(var name in data) {
+        var pair = encodeURIComponent(name) + '=' + encodeURIComponent(data[name]);
+        pairs.push(pair.replace('/%20/g', '+'));
+      }
+      return pairs.join('&');
+	  },
+	  // before IE 7 & IE 7 can't use local file -> ActiveXObject
+	  // xhr: window.XMLHttpRequest && (window.location.protocol !== 'file:' || !window.ActiveXObject) ?
+   //    function() {
+   //      return new XMLHttpRequest();
+   //    } :
+   //    function() {
+   //      try {
+   //        return new ActiveXObject('Microsoft.XMLHTTP');
+   //      } catch(e) {
+   //        throw new Error('XMLHttpRequest not supported');
+   //      }
+   //    },
+  	xhr: function(){
+	    return new XMLHttpRequest();
+    },
+	  ajax: function(option) {
+      option.header = option.header || {'Content-Type':'application/x-www-form-urlencoded'};
+      option.callback = option.callback || function() {};
+
+      if(!option.url || !option.method) {
+        return;
+      }
+
+      var request = utils.xhr();
+      request.onreadystatechange = function() {
+        option.callback.call(request, request);
+      };
+
+      var body = null,
+      		url = option.url;
+      if(option.data) {
+        if(option.method === 'POST') {
+          body = utils.param(option.data);
+        } else {
+          url = option.url + '?' + utils.param(option.data) + '&time=' + new Date().getTime();
+        }
+      }
+
+      request.open(option.method, url);
+      for(var name in option.header) {
+        request.setRequestHeader(name, option.header[name]);
+      }
+      request.send(body);
+	  },
+	  request: function(method, url, parameters, callback, type) {
+      utils.ajax({
+        method   : method,
+        url      : url,
+        data     : parameters,
+        callback : function(request) {
+          if(request.readyState === 4) {
+            var result;
+            if(type === 'xml') {
+              result = request.responseXML;
+            } else if(type === 'json') {
+              // should use JSON.parse()
+              result = eval(request.responseText);
+            } else {
+              result = request.responseText;
+            }
+
+            if(callback) {
+              callback(result, request.status, request);
+            }
+          }
+        }
+      });
+	  },
+	  get: function(url, parameters, callback, type) {
+      utils.request('GET', url, parameters, callback, type);
+	  },
+	  post: function(url, parameters, callback, type) {
+      utils.request('POST', url, parameters, callback, type);
+	  },
+	  getScript: function(url, callback) {
+	      var script = document.createElement('script');
+	      script.type = 'text/javascript';
+	      script.src = url;
+
+	      // for all browser
+	      script.onload = script.onreadystatechange = function() {
+          if (!this.readyState || this.readyState === "loaded" || this.readyState === "complete") {
+            this.onload = this.onreadystatechange = null;
+            document.getElementsByTagName('head')[0].removeChild(this);
+            if(callback) {
+              callback();
+            }
+          }
+	      };
+	      document.getElementsByTagName('head')[0].appendChild(script);
+	  },
+	  jsonp: function(option, callbackName) {
+      // 沒有url或伺服端要求的callbackName就結束
+      if(!option.url || !callbackName) {
+          return;
+      }
+      var data = option.data || {};
+
+      // 建立暫時的函式
+      data[callbackName] = 'myLibrary' + arguments.callee.jsc++;
+      window[data[callbackName]] = function(json) {
+          option.callback(json);
+      };
+      var url = option.url + '?' + utils.param(data);
+
+      // 取得 script 檔案
+      utils.getScript(url, function() {
+        // script 下載並執行完後移除暫時的函式
+        window[data[callbackName]] = undefined;
+        try {
+          delete window[data[callbackName]];
+        }catch(e) {}
+      });
 	  }
   };
 
